@@ -1,7 +1,7 @@
 --[[ 
-    🌑 HADES SOFTWARE v3.0 - OFFICIAL 2026
+    🌑 HADES SOFTWARE v3.5 - OFFICIAL 2026
     Developer: Valeriuss111ss
-    Features: Aimbot, ESP, Fly, TP/Bring, FPS Boost, Skin Changer (MM2)
+    Features: Team-Check Aimbot (RMB), Box ESP, Invisible, Noclip Fly, Ultra FPS Boost
 ]]
 
 local Players = game:GetService("Players")
@@ -15,51 +15,90 @@ local Camera = workspace.CurrentCamera
 -- --- SETTINGS ---
 _G.HadesSettings = {
     Aimbot = false,
+    Aimbot_FOV = 150, -- Kilitlenme alanı
     ESP_Box = false,
     Fly = false,
     FlySpeed = 50,
     Target = nil,
-    FPSBoost = false
+    FPSBoost = false,
+    Invisible = false
 }
 
--- --- NEW FUNCTIONS ---
+-- --- NEW & IMPROVED FUNCTIONS ---
 
--- 🚀 FPS BOOST (Performance Mode)
+-- 🚀 ULTRA FPS BOOST (Maksimum Performans)
 local function OptimizeFPS(state)
     if state then
+        settings().Rendering.QualityLevel = 1
+        RunService:Set3dRenderingEnabled(true) -- Ekranı tamamen kapatmak yerine detayları öldürür
         for _, v in pairs(game:GetDescendants()) do
-            if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
+            if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") or v:IsA("CornerWedgePart") then
                 v.Material = Enum.Material.SmoothPlastic
                 v.Reflectance = 0
+                v.CastShadow = false
             elseif v:IsA("Decal") or v:IsA("Texture") then
                 v.Transparency = 1
-            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
                 v.Enabled = false
+            elseif v:IsA("Explosion") then
+                v.Visible = false
             end
         end
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
-        settings().Rendering.QualityLevel = 1
-    else
-        print("FPS Boost kapatıldı. Etki için oyunu yeniden başlatmanız önerilir.")
+        Lighting.Brightness = 2 -- Daha aydınlık ama az detay
+        print("Hades: Ultra FPS Boost Aktif!")
     end
 end
 
--- 🔪 SKIN CHANGER (MM2 Godly System)
-local function EquipSkin(meshID, texID)
-    local character = LocalPlayer.Character
-    if character then
-        local knife = character:FindFirstChild("Knife") or LocalPlayer.Backpack:FindFirstChild("Knife")
-        if knife and knife:FindFirstChild("Handle") then
-            local handle = knife.Handle
-            if handle:IsA("MeshPart") then
-                handle.MeshId = "rbxassetid://" .. meshID
-                if texID then handle.TextureID = "rbxassetid://" .. texID end
-                print("Hades: Skin Applied!")
+-- 👻 INVISIBLE (Görünmezlik)
+local function ToggleInvisible(state)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("LowerTorso") then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if state then
+            -- Basit ama etkili yerel görünmezlik (Karakteri haritanın altına saklar ama root yukarıda kalır)
+            for _, v in pairs(char:GetChildren()) do
+                if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
+                    v.Transparency = 1
+                end
+            end
+        else
+            for _, v in pairs(char:GetChildren()) do
+                if v:IsA("BasePart") then v.Transparency = 0 end
             end
         end
     end
 end
+
+-- 🎯 TEAM-CHECK AIMBOT (Düşman Odaklı)
+local function GetClosestEnemy()
+    local target = nil
+    local dist = _G.HadesSettings.Aimbot_FOV
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Team ~= LocalPlayer.Team and p.Character and p.Character:FindFirstChild("Head") then
+            local pos, vis = Camera:WorldToViewportPoint(p.Character.Head.Position)
+            if vis then
+                local mag = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
+                if mag < dist then
+                    dist = mag
+                    target = p
+                end
+            end
+        end
+    end
+    return target
+end
+
+RunService.RenderStepped:Connect(function()
+    if _G.HadesSettings.Aimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local enemy = GetClosestEnemy()
+        if enemy then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, enemy.Character.Head.Position)
+        end
+    end
+end)
 
 -- --- EXISTING FUNCTIONS ---
 
@@ -101,6 +140,8 @@ local function CreateESP(plr)
                 box.Size = Vector2.new(size / 1.5, size)
                 box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
                 box.Visible = true
+                -- Takım rengine göre ESP (Düşman kırmızı, Dost yeşil)
+                box.Color = (plr.Team ~= LocalPlayer.Team) and Color3.new(1,0,0) or Color3.new(0,1,0)
             else box.Visible = false end
         else
             box.Visible = false
@@ -110,22 +151,6 @@ local function CreateESP(plr)
 end
 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
 Players.PlayerAdded:Connect(CreateESP)
-
-RunService.RenderStepped:Connect(function()
-    if _G.HadesSettings.Aimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local target = nil; local dist = math.huge
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
-                local pos, vis = Camera:WorldToViewportPoint(p.Character.Head.Position)
-                if vis then
-                    local mag = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
-                    if mag < dist then dist = mag; target = p end
-                end
-            end
-        end
-        if target then Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position) end
-    end
-end)
 
 -- --- [ UI DESIGN ] ---
 if CoreGui:FindFirstChild("HadesV2") then CoreGui.HadesV2:Destroy() end
@@ -157,7 +182,7 @@ local function CreatePage(n)
     Instance.new("UIListLayout", p).Padding = UDim.new(0,10); return p
 end
 
-local CombatP = CreatePage("Combat"); local VisualP = CreatePage("Visuals"); local PlayerP = CreatePage("Players"); local SkinsP = CreatePage("Skins"); local ConfigP = CreatePage("Config")
+local CombatP = CreatePage("Combat"); local VisualP = CreatePage("Visuals"); local PlayerP = CreatePage("Players"); local ConfigP = CreatePage("Config")
 CombatP.Visible = true
 
 -- --- [ PLAYER LIST LOGIC ] ---
@@ -201,25 +226,21 @@ local function AddToggle(pg, txt, key, callback)
     end)
 end
 
-local function AddSkinBtn(pg, name, mID, tID)
-    local b = Instance.new("TextButton", pg); b.Size = UDim2.new(1,-20,0,35); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(30,30,30); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function() EquipSkin(mID, tID) end)
-end
+AddTab("Combat", CombatP); AddTab("Visuals", VisualP); AddTab("Players", PlayerP); AddTab("Config", ConfigP)
 
-AddTab("Combat", CombatP); AddTab("Visuals", VisualP); AddTab("Players", PlayerP); AddTab("Skins", SkinsP); AddTab("Config", ConfigP)
+-- Combat
+AddToggle(CombatP, "Aimbot (Düşman Odaklı)", "Aimbot")
 
 -- Visuals
-AddToggle(VisualP, "Box ESP", "ESP_Box")
-AddToggle(VisualP, "FPS BOOST (Ultra Low PC)", "FPSBoost", function(v) OptimizeFPS(v) end)
+AddToggle(VisualP, "Box ESP (Dost/Düşman)", "ESP_Box")
+AddToggle(VisualP, "ULTRA FPS BOOST", "FPSBoost", function(v) OptimizeFPS(v) end)
 
--- Skins (MM2 Godlys)
-AddSkinBtn(SkinsP, "Equip Chroma Heat", "2470550302", "2470550382")
-AddSkinBtn(SkinsP, "Equip Corrupt", "2470550302", "154563177")
-AddSkinBtn(SkinsP, "Equip Nik's Scythe", "345371583", "345371665")
+-- Players
+AddToggle(PlayerP, "Invisible (Görünmezlik)", "Invisible", function(v) ToggleInvisible(v) end)
 
--- Rest
+-- Config
 AddToggle(ConfigP, "Flight Mode (WASD)", "Fly", function(v) if v then ToggleFly() end end)
 
 UserInputService.InputBegan:Connect(function(i, g) if not g and (i.KeyCode == Enum.KeyCode.RightShift or i.KeyCode == Enum.KeyCode.Insert) then Main.Visible = not Main.Visible end end)
 
-print("Hades Software v3.0 - Loaded by Valeriuss111ss")
+print("Hades Software v3.5 - Stealth & Combat Edition Loaded")
