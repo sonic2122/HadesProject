@@ -1,13 +1,14 @@
 --[[ 
-    🌑 HADES SOFTWARE v2.0 - OFFICIAL 2026
+    🌑 HADES SOFTWARE v3.0 - OFFICIAL 2026
     Developer: Valeriuss111ss
-    Features: Aimbot (RMB), Box ESP, Noclip Fly, Player List TP/Bring
+    Features: Aimbot, ESP, Fly, TP/Bring, FPS Boost, Skin Changer (MM2)
 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -17,48 +18,80 @@ _G.HadesSettings = {
     ESP_Box = false,
     Fly = false,
     FlySpeed = 50,
-    Target = nil
+    Target = nil,
+    FPSBoost = false
 }
 
--- --- FUNCTIONS ---
+-- --- NEW FUNCTIONS ---
 
--- ✈️ NOCLIP FLY (Duvar Geçen Uçuş)
+-- 🚀 FPS BOOST (Performance Mode)
+local function OptimizeFPS(state)
+    if state then
+        for _, v in pairs(game:GetDescendants()) do
+            if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                v.Enabled = false
+            end
+        end
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        settings().Rendering.QualityLevel = 1
+    else
+        print("FPS Boost kapatıldı. Etki için oyunu yeniden başlatmanız önerilir.")
+    end
+end
+
+-- 🔪 SKIN CHANGER (MM2 Godly System)
+local function EquipSkin(meshID, texID)
+    local character = LocalPlayer.Character
+    if character then
+        local knife = character:FindFirstChild("Knife") or LocalPlayer.Backpack:FindFirstChild("Knife")
+        if knife and knife:FindFirstChild("Handle") then
+            local handle = knife.Handle
+            if handle:IsA("MeshPart") then
+                handle.MeshId = "rbxassetid://" .. meshID
+                if texID then handle.TextureID = "rbxassetid://" .. texID end
+                print("Hades: Skin Applied!")
+            end
+        end
+    end
+end
+
+-- --- EXISTING FUNCTIONS ---
+
 local function ToggleFly()
     task.spawn(function()
         local bg = Instance.new("BodyGyro", LocalPlayer.Character.HumanoidRootPart)
         local bv = Instance.new("BodyVelocity", LocalPlayer.Character.HumanoidRootPart)
         bg.P = 9e4; bg.maxTorque = Vector3.new(9e9, 9e9, 9e9); bg.cframe = LocalPlayer.Character.HumanoidRootPart.CFrame
         bv.velocity = Vector3.new(0,0,0); bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-        
         while _G.HadesSettings.Fly do
             RunService.RenderStepped:Wait()
             LocalPlayer.Character.Humanoid.PlatformStand = true
             for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
             end
-            
             local direction = Vector3.new(0,0,0)
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + Camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - Camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - Camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + Camera.CFrame.RightVector end
-            
             bv.velocity = direction * _G.HadesSettings.FlySpeed
             bg.cframe = Camera.CFrame
         end
         bg:Destroy(); bv:Destroy()
         LocalPlayer.Character.Humanoid.PlatformStand = false
-        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = true end
-        end
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = true end end
     end)
 end
 
--- 👁️ BOX ESP
 local function CreateESP(plr)
     local box = Drawing.new("Square")
     box.Visible = false; box.Color = Color3.new(1,0,0); box.Thickness = 1; box.Filled = false
-    
     local connection
     connection = RunService.RenderStepped:Connect(function()
         if _G.HadesSettings.ESP_Box and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -78,7 +111,6 @@ end
 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
 Players.PlayerAdded:Connect(CreateESP)
 
--- 🔫 AIMBOT
 RunService.RenderStepped:Connect(function()
     if _G.HadesSettings.Aimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
         local target = nil; local dist = math.huge
@@ -107,12 +139,8 @@ task.spawn(function() while task.wait() do Stroke.Color = Color3.fromHSV(tick() 
 
 local Side = Instance.new("Frame", Main); Side.Size = UDim2.new(0, 160, 1, 0); Side.BackgroundColor3 = Color3.fromRGB(8,8,8); Instance.new("UICorner", Side)
 
--- 🖼️ LOGO ENTEGRASYONU (Sol Üst)
 local Logo = Instance.new("ImageLabel", Side)
-Logo.Size = UDim2.new(0, 100, 0, 100) -- Görseldeki gibi büyük ve net
-Logo.Position = UDim2.new(0.5, -50, 0, 10)
-Logo.BackgroundTransparency = 1
-Logo.Image = "rbxassetid://13508139595" -- Beyaz Cerberus Logosu
+Logo.Size = UDim2.new(0, 100, 0, 100); Logo.Position = UDim2.new(0.5, -50, 0, 10); Logo.BackgroundTransparency = 1; Logo.Image = "rbxassetid://13508139595"
 
 local Title = Instance.new("TextLabel", Side)
 Title.Text = "HADES SOFTWARE"; Title.Position = UDim2.new(0,0,0,110); Title.Size = UDim2.new(1,0,0,30); Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1; Title.TextSize = 13
@@ -129,46 +157,28 @@ local function CreatePage(n)
     Instance.new("UIListLayout", p).Padding = UDim.new(0,10); return p
 end
 
-local CombatP = CreatePage("Combat"); local VisualP = CreatePage("Visuals"); local PlayerP = CreatePage("Players"); local ConfigP = CreatePage("Config")
+local CombatP = CreatePage("Combat"); local VisualP = CreatePage("Visuals"); local PlayerP = CreatePage("Players"); local SkinsP = CreatePage("Skins"); local ConfigP = CreatePage("Config")
 CombatP.Visible = true
 
 -- --- [ PLAYER LIST LOGIC ] ---
 local function UpdatePlayerList()
     PlayerP:ClearAllChildren()
     local Layout = Instance.new("UIListLayout", PlayerP); Layout.Padding = UDim.new(0,5); Layout.HorizontalAlignment = "Center"
-    
-    local ActionContainer = Instance.new("Frame", PlayerP)
-    ActionContainer.Size = UDim2.new(1,-20,0,85); ActionContainer.BackgroundTransparency = 1
+    local ActionContainer = Instance.new("Frame", PlayerP); ActionContainer.Size = UDim2.new(1,-20,0,85); ActionContainer.BackgroundTransparency = 1
     Instance.new("UIListLayout", ActionContainer).Padding = UDim.new(0,5)
 
     local tpBtn = Instance.new("TextButton", ActionContainer)
-    tpBtn.Size = UDim2.new(1,0,0,40); tpBtn.Text = "Teleport to Selected"; tpBtn.BackgroundColor3 = Color3.fromRGB(40,40,40); tpBtn.TextColor3 = Color3.new(1,1,1); tpBtn.Font = "GothamBold"
-    Instance.new("UICorner", tpBtn)
-    tpBtn.MouseButton1Click:Connect(function()
-        if _G.HadesSettings.Target and _G.HadesSettings.Target.Character then
-            LocalPlayer.Character:SetPrimaryPartCFrame(_G.HadesSettings.Target.Character.HumanoidRootPart.CFrame)
-        end
-    end)
+    tpBtn.Size = UDim2.new(1,0,0,40); tpBtn.Text = "Teleport to Selected"; tpBtn.BackgroundColor3 = Color3.fromRGB(40,40,40); tpBtn.TextColor3 = Color3.new(1,1,1); tpBtn.Font = "GothamBold"; Instance.new("UICorner", tpBtn)
+    tpBtn.MouseButton1Click:Connect(function() if _G.HadesSettings.Target and _G.HadesSettings.Target.Character then LocalPlayer.Character:SetPrimaryPartCFrame(_G.HadesSettings.Target.Character.HumanoidRootPart.CFrame) end end)
 
     local bringBtn = Instance.new("TextButton", ActionContainer)
-    bringBtn.Size = UDim2.new(1,0,0,40); bringBtn.Text = "Bring Selected"; bringBtn.BackgroundColor3 = Color3.fromRGB(40,40,40); bringBtn.TextColor3 = Color3.new(1,1,1); bringBtn.Font = "GothamBold"
-    Instance.new("UICorner", bringBtn)
-    bringBtn.MouseButton1Click:Connect(function()
-        if _G.HadesSettings.Target and _G.HadesSettings.Target.Character then
-            _G.HadesSettings.Target.Character:SetPrimaryPartCFrame(LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-3))
-        end
-    end)
+    bringBtn.Size = UDim2.new(1,0,0,40); bringBtn.Text = "Bring Selected"; bringBtn.BackgroundColor3 = Color3.fromRGB(40,40,40); bringBtn.TextColor3 = Color3.new(1,1,1); bringBtn.Font = "GothamBold"; Instance.new("UICorner", bringBtn)
+    bringBtn.MouseButton1Click:Connect(function() if _G.HadesSettings.Target and _G.HadesSettings.Target.Character then _G.HadesSettings.Target.Character:SetPrimaryPartCFrame(LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)) end end)
 
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
-            local pBtn = Instance.new("TextButton", PlayerP)
-            pBtn.Size = UDim2.new(1,-20,0,30); pBtn.Text = p.DisplayName; pBtn.BackgroundColor3 = Color3.fromRGB(25,25,25); pBtn.TextColor3 = Color3.new(1,1,1); pBtn.Font = "Gotham"
-            Instance.new("UICorner", pBtn)
-            pBtn.MouseButton1Click:Connect(function()
-                _G.HadesSettings.Target = p
-                for _, btn in pairs(PlayerP:GetChildren()) do if btn:IsA("TextButton") then btn.BackgroundColor3 = Color3.fromRGB(25,25,25) end end
-                pBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
-            end)
+            local pBtn = Instance.new("TextButton", PlayerP); pBtn.Size = UDim2.new(1,-20,0,30); pBtn.Text = p.DisplayName; pBtn.BackgroundColor3 = Color3.fromRGB(25,25,25); pBtn.TextColor3 = Color3.new(1,1,1); pBtn.Font = "Gotham"; Instance.new("UICorner", pBtn)
+            pBtn.MouseButton1Click:Connect(function() _G.HadesSettings.Target = p; for _, btn in pairs(PlayerP:GetChildren()) do if btn:IsA("TextButton") then btn.BackgroundColor3 = Color3.fromRGB(25,25,25) end end pBtn.BackgroundColor3 = Color3.fromRGB(150,0,0) end)
         end
     end
 end
@@ -177,13 +187,13 @@ Players.PlayerAdded:Connect(UpdatePlayerList); Players.PlayerRemoving:Connect(Up
 
 -- --- [ UI COMPONENTS ] ---
 local function AddTab(n, pg)
-    local t = Instance.new("TextButton", TabContainer); t.Size = UDim2.new(0,140,0,35); t.Text = n; t.BackgroundColor3 = Color3.fromRGB(20,20,20); t.TextColor3 = Color3.new(1,1,1); t.Font = "Gotham"
-    Instance.new("UICorner", t); t.MouseButton1Click:Connect(function() for _,p in pairs(Pages:GetChildren()) do p.Visible = false end pg.Visible = true end)
+    local t = Instance.new("TextButton", TabContainer); t.Size = UDim2.new(0,140,0,35); t.Text = n; t.BackgroundColor3 = Color3.fromRGB(20,20,20); t.TextColor3 = Color3.new(1,1,1); t.Font = "Gotham"; Instance.new("UICorner", t)
+    t.MouseButton1Click:Connect(function() for _,p in pairs(Pages:GetChildren()) do p.Visible = false end pg.Visible = true end)
 end
 
 local function AddToggle(pg, txt, key, callback)
-    local b = Instance.new("TextButton", pg); b.Size = UDim2.new(1,-20,0,40); b.Text = txt.." [OFF]"; b.BackgroundColor3 = Color3.fromRGB(25,25,25); b.TextColor3 = Color3.new(1,1,1); b.Font = "Gotham"
-    Instance.new("UICorner", b); b.MouseButton1Click:Connect(function()
+    local b = Instance.new("TextButton", pg); b.Size = UDim2.new(1,-20,0,40); b.Text = txt.." [OFF]"; b.BackgroundColor3 = Color3.fromRGB(25,25,25); b.TextColor3 = Color3.new(1,1,1); b.Font = "Gotham"; Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(function()
         _G.HadesSettings[key] = not _G.HadesSettings[key]
         b.Text = txt..(_G.HadesSettings[key] and " [ON]" or " [OFF]")
         b.BackgroundColor3 = _G.HadesSettings[key] and Color3.fromRGB(150,0,0) or Color3.fromRGB(25,25,25)
@@ -191,11 +201,25 @@ local function AddToggle(pg, txt, key, callback)
     end)
 end
 
-AddTab("Combat", CombatP); AddTab("Visuals", VisualP); AddTab("Players", PlayerP); AddTab("Config", ConfigP)
-AddToggle(CombatP, "Aimbot (RightClick)", "Aimbot")
+local function AddSkinBtn(pg, name, mID, tID)
+    local b = Instance.new("TextButton", pg); b.Size = UDim2.new(1,-20,0,35); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(30,30,30); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(function() EquipSkin(mID, tID) end)
+end
+
+AddTab("Combat", CombatP); AddTab("Visuals", VisualP); AddTab("Players", PlayerP); AddTab("Skins", SkinsP); AddTab("Config", ConfigP)
+
+-- Visuals
 AddToggle(VisualP, "Box ESP", "ESP_Box")
+AddToggle(VisualP, "FPS BOOST (Ultra Low PC)", "FPSBoost", function(v) OptimizeFPS(v) end)
+
+-- Skins (MM2 Godlys)
+AddSkinBtn(SkinsP, "Equip Chroma Heat", "2470550302", "2470550382")
+AddSkinBtn(SkinsP, "Equip Corrupt", "2470550302", "154563177")
+AddSkinBtn(SkinsP, "Equip Nik's Scythe", "345371583", "345371665")
+
+-- Rest
 AddToggle(ConfigP, "Flight Mode (WASD)", "Fly", function(v) if v then ToggleFly() end end)
 
 UserInputService.InputBegan:Connect(function(i, g) if not g and (i.KeyCode == Enum.KeyCode.RightShift or i.KeyCode == Enum.KeyCode.Insert) then Main.Visible = not Main.Visible end end)
 
-print("Hades Software v2.0 - Loaded by Valeriuss111ss")
+print("Hades Software v3.0 - Loaded by Valeriuss111ss")
