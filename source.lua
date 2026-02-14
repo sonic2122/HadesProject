@@ -171,7 +171,7 @@ local Title = Instance.new("TextLabel", Side)
 Title.Text = "HADES SOFTWARE"; Title.Position = UDim2.new(0,0,0,110); Title.Size = UDim2.new(1,0,0,30); Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1; Title.TextSize = 13
 
 local Signature = Instance.new("TextLabel", Main)
-Signature.Text = "by: Valeriuss111ss"; Signature.Position = UDim2.new(1,-160,1,-25); Signature.Size = UDim2.new(0,150,0,20); Signature.TextColor3 = Color3.new(0.7,0.7,0.7); Signature.BackgroundTransparency = 1; Signature.Font = "GothamMedium"; Signature.TextXAlignment = "Right"
+Signature.Text = "by: Valeriuss111ss,Calyizm?"; Signature.Position = UDim2.new(1,-160,1,-25); Signature.Size = UDim2.new(0,150,0,20); Signature.TextColor3 = Color3.new(0.7,0.7,0.7); Signature.BackgroundTransparency = 1; Signature.Font = "GothamMedium"; Signature.TextXAlignment = "Right"
 
 local Pages = Instance.new("Frame", Main); Pages.Size = UDim2.new(1,-180,1,-40); Pages.Position = UDim2.new(0,170,0,20); Pages.BackgroundTransparency = 1
 local TabContainer = Instance.new("Frame", Side); TabContainer.Size = UDim2.new(1,0,1,-160); TabContainer.Position = UDim2.new(0,0,0,145); TabContainer.BackgroundTransparency = 1
