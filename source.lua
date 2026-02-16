@@ -1,7 +1,6 @@
 --[[ 
-    🌑 HADES SOFTWARE v3.5 - OFFICIAL 2026
+    🌑 HADES SOFTWARE v3.5 - ULTIMATE EDITION (AUTO LOCK AIM + 360 SPIN BOT + GOD MODE + ADMIN PANEL) 2026
     Developer: Valeriuss111ss
-    Features: Team-Check Aimbot (RMB), Box ESP, Invisible, Noclip Fly, Ultra FPS Boost
 ]]
 
 local Players = game:GetService("Players")
@@ -9,238 +8,1430 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local HttpService = game:GetService("HttpService")
 
--- --- SETTINGS ---
-_G.HadesSettings = {
-    Aimbot = false,
-    Aimbot_FOV = 150, -- Kilitlenme alanı
-    ESP_Box = false,
-    Fly = false,
-    FlySpeed = 50,
-    Target = nil,
-    FPSBoost = false,
-    Invisible = false
+-- --- KEY SYSTEM WITH EXPIRY ---
+local KeySystem = {
+    Verified = false,
+    MasterKey = "HADES2026",
+    Attempts = 0,
+    MaxAttempts = 3,
+    CurrentKey = nil
 }
 
--- --- NEW & IMPROVED FUNCTIONS ---
+-- --- ADMIN SYSTEM ---
+_G.HadesKeys = _G.HadesKeys or {}
 
--- 🚀 ULTRA FPS BOOST (Maksimum Performans)
-local function OptimizeFPS(state)
-    if state then
-        settings().Rendering.QualityLevel = 1
-        RunService:Set3dRenderingEnabled(true) -- Ekranı tamamen kapatmak yerine detayları öldürür
-        for _, v in pairs(game:GetDescendants()) do
-            if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") or v:IsA("CornerWedgePart") then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Reflectance = 0
-                v.CastShadow = false
-            elseif v:IsA("Decal") or v:IsA("Texture") then
-                v.Transparency = 1
-            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
-                v.Enabled = false
-            elseif v:IsA("Explosion") then
-                v.Visible = false
+local AdminSystem = {
+    Enabled = false,
+    Password = "ADMIN123"
+}
+
+-- Spin Bot değişkenleri
+local SpinBotEnabled = false
+local SpinSpeed = 10
+
+-- God Mode değişkeni
+local GodModeEnabled = false
+
+-- --- KAR YAĞIŞ EFEKTİ ---
+local function CreateSnowEffect(ParentFrame)
+    task.spawn(function()
+        while task.wait(0.15) do
+            if not ParentFrame or not ParentFrame.Parent then break end
+            if ParentFrame.Visible then
+                local snow = Instance.new("TextLabel")
+                snow.Parent = ParentFrame
+                snow.BackgroundTransparency = 1
+                snow.Text = "❄️"
+                snow.TextColor3 = Color3.fromRGB(255, 255, 255)
+                snow.TextSize = math.random(12, 20)
+                snow.Position = UDim2.new(math.random(), 0, -0.1, 0)
+                snow.ZIndex = 10
+                snow.RichText = true
+                
+                local drift = math.random(-20, 20) / 100
+                local fallSpeed = math.random(3, 7)
+                
+                local t = TweenService:Create(snow, TweenInfo.new(fallSpeed, Enum.EasingStyle.Linear), {
+                    Position = UDim2.new(snow.Position.X.Scale + drift, 0, 1.1, 0),
+                    Rotation = 360,
+                    TextTransparency = 1
+                })
+                t:Play()
+                game:GetService("Debris"):AddItem(snow, fallSpeed + 1)
             end
+            task.wait(0.1)
         end
-        Lighting.GlobalShadows = false
-        Lighting.FogEnd = 9e9
-        Lighting.Brightness = 2 -- Daha aydınlık ama az detay
-        print("Hades: Ultra FPS Boost Aktif!")
-    end
+    end)
 end
 
--- 👻 INVISIBLE (Görünmezlik)
-local function ToggleInvisible(state)
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("LowerTorso") then
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if state then
-            -- Basit ama etkili yerel görünmezlik (Karakteri haritanın altına saklar ama root yukarıda kalır)
-            for _, v in pairs(char:GetChildren()) do
-                if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
-                    v.Transparency = 1
-                end
-            end
-        else
-            for _, v in pairs(char:GetChildren()) do
-                if v:IsA("BasePart") then v.Transparency = 0 end
+-- --- ARKA PLAN BULANIKLAŞTIRMA ---
+local function CreateBlurBackground(parent)
+    local blur = Instance.new("Frame")
+    blur.Parent = parent
+    blur.Size = UDim2.new(1, 0, 1, 0)
+    blur.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    blur.BackgroundTransparency = 0.5
+    blur.ZIndex = 1
+    
+    local gradient = Instance.new("UIGradient")
+    gradient.Parent = blur
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(20, 20, 30)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
+    })
+    gradient.Rotation = 90
+    
+    return blur
+end
+
+-- Anahtar kontrol fonksiyonu
+local function CheckKey(inputKey)
+    if inputKey == KeySystem.MasterKey then
+        return true, "admin", "Sınırsız"
+    end
+    
+    for key, data in pairs(_G.HadesKeys) do
+        if key == inputKey then
+            local currentTime = os.time()
+            if currentTime <= data.Expiry then
+                return true, "user", data.Time .. " gün"
+            else
+                _G.HadesKeys[key] = nil
+                return false, "expired"
             end
         end
     end
+    
+    return false, "invalid"
 end
 
--- 🎯 TEAM-CHECK AIMBOT (Düşman Odaklı)
-local function GetClosestEnemy()
-    local target = nil
-    local dist = _G.HadesSettings.Aimbot_FOV
+-- --- RAKİP KONTROLLÜ AIMBOT ---
+local function getClosestEnemy()
+    local closestTarget = nil
+    local shortestDistance = _G.HadesSettings.Aimbot_FOV
+    local mousePos = UserInputService:GetMouseLocation()
     
     for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Team ~= LocalPlayer.Team and p.Character and p.Character:FindFirstChild("Head") then
-            local pos, vis = Camera:WorldToViewportPoint(p.Character.Head.Position)
-            if vis then
-                local mag = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
-                if mag < dist then
-                    dist = mag
-                    target = p
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+            -- SADECE RAKİP KONTROLÜ
+            if p.Team ~= LocalPlayer.Team then
+                local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health > 0 then
+                    local pos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+                    if onScreen then
+                        local screenDist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                        if screenDist < shortestDistance then
+                            shortestDistance = screenDist
+                            closestTarget = p.Character.Head
+                        end
+                    end
                 end
             end
         end
     end
-    return target
+    return closestTarget
 end
 
-RunService.RenderStepped:Connect(function()
-    if _G.HadesSettings.Aimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local enemy = GetClosestEnemy()
-        if enemy then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, enemy.Character.Head.Position)
-        end
-    end
-end)
-
--- --- EXISTING FUNCTIONS ---
-
-local function ToggleFly()
-    task.spawn(function()
-        local bg = Instance.new("BodyGyro", LocalPlayer.Character.HumanoidRootPart)
-        local bv = Instance.new("BodyVelocity", LocalPlayer.Character.HumanoidRootPart)
-        bg.P = 9e4; bg.maxTorque = Vector3.new(9e9, 9e9, 9e9); bg.cframe = LocalPlayer.Character.HumanoidRootPart.CFrame
-        bv.velocity = Vector3.new(0,0,0); bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-        while _G.HadesSettings.Fly do
-            RunService.RenderStepped:Wait()
-            LocalPlayer.Character.Humanoid.PlatformStand = true
-            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
+-- Admin panelini göster
+local function ShowAdminPanel()
+    local AdminGui = Instance.new("ScreenGui")
+    AdminGui.Name = "HadesAdminPanel"
+    AdminGui.Parent = CoreGui
+    AdminGui.ResetOnSpawn = false
+    
+    local Background = CreateBlurBackground(AdminGui)
+    
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = AdminGui
+    MainFrame.Size = UDim2.new(0, 500, 0, 400)
+    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ZIndex = 2
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 15)
+    Corner.Parent = MainFrame
+    
+    -- Kar efekti sadece panelde
+    CreateSnowEffect(MainFrame)
+    
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Parent = MainFrame
+    CloseButton.Size = UDim2.new(0, 35, 0, 35)
+    CloseButton.Position = UDim2.new(1, -45, 0, 5)
+    CloseButton.Text = "✕"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 20
+    CloseButton.ZIndex = 3
+    
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 8)
+    CloseCorner.Parent = CloseButton
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        AdminGui:Destroy()
+        AdminSystem.Enabled = false
+    end)
+    
+    local Title = Instance.new("TextLabel")
+    Title.Parent = MainFrame
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.Position = UDim2.new(0, 0, 0, 10)
+    Title.Text = "👑 KEY ÜRETME PANELİ"
+    Title.TextColor3 = Color3.fromRGB(255, 215, 0)
+    Title.BackgroundTransparency = 1
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 24
+    Title.ZIndex = 3
+    
+    local InfoText = Instance.new("TextLabel")
+    InfoText.Parent = MainFrame
+    InfoText.Size = UDim2.new(1, 0, 0, 20)
+    InfoText.Position = UDim2.new(0, 0, 0, 60)
+    InfoText.Text = "Master Key: HADES2026 (Sınırsız Süre)"
+    InfoText.TextColor3 = Color3.fromRGB(100, 255, 100)
+    InfoText.BackgroundTransparency = 1
+    InfoText.Font = Enum.Font.GothamBold
+    InfoText.TextSize = 14
+    InfoText.ZIndex = 3
+    
+    local LeftPanel = Instance.new("Frame")
+    LeftPanel.Parent = MainFrame
+    LeftPanel.Size = UDim2.new(0.45, 0, 0, 250)
+    LeftPanel.Position = UDim2.new(0.03, 0, 0, 90)
+    LeftPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    LeftPanel.BorderSizePixel = 0
+    LeftPanel.ZIndex = 3
+    
+    local LeftCorner = Instance.new("UICorner")
+    LeftCorner.CornerRadius = UDim.new(0, 10)
+    LeftCorner.Parent = LeftPanel
+    
+    local LeftTitle = Instance.new("TextLabel")
+    LeftTitle.Parent = LeftPanel
+    LeftTitle.Size = UDim2.new(1, 0, 0, 35)
+    LeftTitle.Text = "🔑 KEY ÜRET"
+    LeftTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    LeftTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    LeftTitle.Font = Enum.Font.GothamBold
+    LeftTitle.TextSize = 16
+    LeftTitle.ZIndex = 4
+    
+    local TimeLabel = Instance.new("TextLabel")
+    TimeLabel.Parent = LeftPanel
+    TimeLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    TimeLabel.Position = UDim2.new(0.05, 0, 0, 45)
+    TimeLabel.Text = "Süre Seç:"
+    TimeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    TimeLabel.BackgroundTransparency = 1
+    TimeLabel.Font = Enum.Font.Gotham
+    TimeLabel.TextSize = 14
+    TimeLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TimeLabel.ZIndex = 4
+    
+    local TimeButtons = {}
+    local times = {
+        {name = "3 GÜN", days = 3},
+        {name = "7 GÜN", days = 7},
+        {name = "15 GÜN", days = 15},
+        {name = "30 GÜN", days = 30}
+    }
+    local selectedTime = 3
+    local selectedButton = nil
+    
+    for i, t in ipairs(times) do
+        local btn = Instance.new("TextButton")
+        btn.Parent = LeftPanel
+        btn.Size = UDim2.new(0.45, 0, 0, 35)
+        btn.Position = UDim2.new(
+            i % 2 == 1 and 0.05 or 0.5, 0,
+            0.25 + (math.floor((i-1)/2) * 0.12), 0
+        )
+        btn.Text = t.name
+        btn.BackgroundColor3 = i == 1 and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(40, 40, 50)
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.ZIndex = 4
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.Parent = btn
+        
+        btn.MouseButton1Click:Connect(function()
+            selectedTime = t.days
+            if selectedButton then
+                selectedButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
             end
-            local direction = Vector3.new(0,0,0)
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + Camera.CFrame.RightVector end
-            bv.velocity = direction * _G.HadesSettings.FlySpeed
-            bg.cframe = Camera.CFrame
+            btn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+            selectedButton = btn
+        end)
+        
+        table.insert(TimeButtons, btn)
+    end
+    
+    local GenerateBtn = Instance.new("TextButton")
+    GenerateBtn.Parent = LeftPanel
+    GenerateBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    GenerateBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
+    GenerateBtn.Text = "🔑 KEY ÜRET"
+    GenerateBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    GenerateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    GenerateBtn.Font = Enum.Font.GothamBold
+    GenerateBtn.TextSize = 16
+    GenerateBtn.ZIndex = 4
+    
+    local GenCorner = Instance.new("UICorner")
+    GenCorner.CornerRadius = UDim.new(0, 8)
+    GenCorner.Parent = GenerateBtn
+    
+    local KeyFrame = Instance.new("Frame")
+    KeyFrame.Parent = LeftPanel
+    KeyFrame.Size = UDim2.new(0.9, 0, 0, 40)
+    KeyFrame.Position = UDim2.new(0.05, 0, 0.8, 0)
+    KeyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    KeyFrame.ZIndex = 4
+    
+    local KeyCorner = Instance.new("UICorner")
+    KeyCorner.CornerRadius = UDim.new(0, 6)
+    KeyCorner.Parent = KeyFrame
+    
+    local GeneratedKey = Instance.new("TextLabel")
+    GeneratedKey.Parent = KeyFrame
+    GeneratedKey.Size = UDim2.new(0.7, 0, 1, 0)
+    GeneratedKey.Position = UDim2.new(0, 5, 0, 0)
+    GeneratedKey.Text = "XXXX-XXXX"
+    GeneratedKey.TextColor3 = Color3.fromRGB(255, 215, 0)
+    GeneratedKey.BackgroundTransparency = 1
+    GeneratedKey.Font = Enum.Font.GothamBold
+    GeneratedKey.TextSize = 16
+    GeneratedKey.TextXAlignment = Enum.TextXAlignment.Left
+    GeneratedKey.ZIndex = 5
+    
+    local CopyBtn = Instance.new("TextButton")
+    CopyBtn.Parent = KeyFrame
+    CopyBtn.Size = UDim2.new(0.25, 0, 0.8, 0)
+    CopyBtn.Position = UDim2.new(0.75, -5, 0.1, 0)
+    CopyBtn.Text = "📋 KOPYALA"
+    CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+    CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CopyBtn.Font = Enum.Font.GothamBold
+    CopyBtn.TextSize = 12
+    CopyBtn.ZIndex = 5
+    
+    local CopyCorner = Instance.new("UICorner")
+    CopyCorner.CornerRadius = UDim.new(0, 4)
+    CopyCorner.Parent = CopyBtn
+    
+    local RightPanel = Instance.new("Frame")
+    RightPanel.Parent = MainFrame
+    RightPanel.Size = UDim2.new(0.45, 0, 0, 250)
+    RightPanel.Position = UDim2.new(0.52, 0, 0, 90)
+    RightPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    RightPanel.BorderSizePixel = 0
+    RightPanel.ZIndex = 3
+    
+    local RightCorner = Instance.new("UICorner")
+    RightCorner.CornerRadius = UDim.new(0, 10)
+    RightCorner.Parent = RightPanel
+    
+    local RightTitle = Instance.new("TextLabel")
+    RightTitle.Parent = RightPanel
+    RightTitle.Size = UDim2.new(1, 0, 0, 35)
+    RightTitle.Text = "📋 AKTİF KEY'LER"
+    RightTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    RightTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    RightTitle.Font = Enum.Font.GothamBold
+    RightTitle.TextSize = 16
+    RightTitle.ZIndex = 4
+    
+    local KeyScroll = Instance.new("ScrollingFrame")
+    KeyScroll.Parent = RightPanel
+    KeyScroll.Size = UDim2.new(1, -10, 1, -45)
+    KeyScroll.Position = UDim2.new(0, 5, 0, 40)
+    KeyScroll.BackgroundTransparency = 1
+    KeyScroll.ScrollBarThickness = 4
+    KeyScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    KeyScroll.ZIndex = 4
+    
+    local KeyLayout = Instance.new("UIListLayout")
+    KeyLayout.Parent = KeyScroll
+    KeyLayout.Padding = UDim.new(0, 5)
+    KeyLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    
+    local function UpdateKeyList()
+        for _, child in pairs(KeyScroll:GetChildren()) do
+            if child:IsA("Frame") then
+                child:Destroy()
+            end
         end
-        bg:Destroy(); bv:Destroy()
-        LocalPlayer.Character.Humanoid.PlatformStand = false
-        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = true end end
+        
+        local currentTime = os.time()
+        local keyCount = 0
+        
+        for key, data in pairs(_G.HadesKeys) do
+            keyCount = keyCount + 1
+            local timeLeft = data.Expiry - currentTime
+            local daysLeft = math.floor(timeLeft / 86400)
+            local hoursLeft = math.floor((timeLeft % 86400) / 3600)
+            
+            local status = daysLeft > 0 and daysLeft .. " gün" or hoursLeft .. " saat"
+            local statusColor = timeLeft > 86400 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 0)
+            
+            local keyFrame = Instance.new("Frame")
+            keyFrame.Parent = KeyScroll
+            keyFrame.Size = UDim2.new(1, -5, 0, 60)
+            keyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+            keyFrame.ZIndex = 5
+            
+            local frameCorner = Instance.new("UICorner")
+            frameCorner.CornerRadius = UDim.new(0, 6)
+            frameCorner.Parent = keyFrame
+            
+            local keyLabel = Instance.new("TextLabel")
+            keyLabel.Parent = keyFrame
+            keyLabel.Size = UDim2.new(1, -10, 0, 30)
+            keyLabel.Position = UDim2.new(0, 5, 0, 5)
+            keyLabel.Text = "🔑 " .. key
+            keyLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+            keyLabel.BackgroundTransparency = 1
+            keyLabel.Font = Enum.Font.GothamBold
+            keyLabel.TextSize = 16
+            keyLabel.TextXAlignment = Enum.TextXAlignment.Left
+            keyLabel.ZIndex = 6
+            
+            local timeLabel = Instance.new("TextLabel")
+            timeLabel.Parent = keyFrame
+            timeLabel.Size = UDim2.new(1, -10, 0, 20)
+            timeLabel.Position = UDim2.new(0, 5, 0, 35)
+            timeLabel.Text = "⏰ Kalan: " .. status
+            timeLabel.TextColor3 = statusColor
+            timeLabel.BackgroundTransparency = 1
+            timeLabel.Font = Enum.Font.GothamBold
+            timeLabel.TextSize = 14
+            timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+            timeLabel.ZIndex = 6
+        end
+        
+        KeyScroll.CanvasSize = UDim2.new(0, 0, 0, keyCount * 65)
+    end
+    
+    GenerateBtn.MouseButton1Click:Connect(function()
+        local part1 = ""
+        local part2 = ""
+        for i = 1, 4 do
+            part1 = part1 .. string.char(math.random(65, 90))
+            part2 = part2 .. string.char(math.random(65, 90))
+        end
+        local key = part1 .. "-" .. part2
+        
+        local expiryTime = os.time() + (selectedTime * 86400)
+        
+        _G.HadesKeys[key] = {
+            Time = selectedTime,
+            Expiry = expiryTime
+        }
+        
+        GeneratedKey.Text = key
+        UpdateKeyList()
     end)
+    
+    CopyBtn.MouseButton1Click:Connect(function()
+        if GeneratedKey.Text ~= "XXXX-XXXX" then
+            setclipboard(GeneratedKey.Text)
+            
+            CopyBtn.Text = "✓ KOPYALANDI"
+            CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            task.wait(1)
+            CopyBtn.Text = "📋 KOPYALA"
+            CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+        end
+    end)
+    
+    UpdateKeyList()
 end
 
-local function CreateESP(plr)
-    local box = Drawing.new("Square")
-    box.Visible = false; box.Color = Color3.new(1,0,0); box.Thickness = 1; box.Filled = false
-    local connection
-    connection = RunService.RenderStepped:Connect(function()
-        if _G.HadesSettings.ESP_Box and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local pos, onScreen = Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
-            if onScreen then
-                local size = (Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)).Y - Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position - Vector3.new(0,4,0)).Y)
-                box.Size = Vector2.new(size / 1.5, size)
-                box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
-                box.Visible = true
-                -- Takım rengine göre ESP (Düşman kırmızı, Dost yeşil)
-                box.Color = (plr.Team ~= LocalPlayer.Team) and Color3.new(1,0,0) or Color3.new(0,1,0)
-            else box.Visible = false end
+-- Admin giriş ekranı
+local function ShowAdminLogin()
+    local LoginGui = Instance.new("ScreenGui")
+    LoginGui.Name = "HadesAdminLogin"
+    LoginGui.Parent = CoreGui
+    LoginGui.ResetOnSpawn = false
+    
+    local Background = CreateBlurBackground(LoginGui)
+    
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = LoginGui
+    MainFrame.Size = UDim2.new(0, 350, 0, 200)
+    MainFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ZIndex = 2
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = MainFrame
+    
+    -- Kar efekti
+    CreateSnowEffect(MainFrame)
+    
+    local Title = Instance.new("TextLabel")
+    Title.Parent = MainFrame
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.Text = "ADMIN LOGIN"
+    Title.TextColor3 = Color3.fromRGB(255, 215, 0)
+    Title.BackgroundTransparency = 1
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 20
+    Title.ZIndex = 3
+    
+    local PasswordBox = Instance.new("TextBox")
+    PasswordBox.Parent = MainFrame
+    PasswordBox.Size = UDim2.new(0.8, 0, 0, 40)
+    PasswordBox.Position = UDim2.new(0.1, 0, 0, 70)
+    PasswordBox.PlaceholderText = "Admin şifresi"
+    PasswordBox.Text = ""
+    PasswordBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PasswordBox.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    PasswordBox.Font = Enum.Font.Gotham
+    PasswordBox.TextSize = 16
+    PasswordBox.ZIndex = 3
+    
+    local PassCorner = Instance.new("UICorner")
+    PassCorner.CornerRadius = UDim.new(0, 6)
+    PassCorner.Parent = PasswordBox
+    
+    local LoginBtn = Instance.new("TextButton")
+    LoginBtn.Parent = MainFrame
+    LoginBtn.Size = UDim2.new(0.8, 0, 0, 40)
+    LoginBtn.Position = UDim2.new(0.1, 0, 0, 120)
+    LoginBtn.Text = "GİRİŞ"
+    LoginBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    LoginBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    LoginBtn.Font = Enum.Font.GothamBold
+    LoginBtn.TextSize = 16
+    LoginBtn.ZIndex = 3
+    
+    local LoginCorner = Instance.new("UICorner")
+    LoginCorner.CornerRadius = UDim.new(0, 6)
+    LoginCorner.Parent = LoginBtn
+    
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Parent = MainFrame
+    StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+    StatusLabel.Position = UDim2.new(0, 0, 1, -25)
+    StatusLabel.Text = ""
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.TextSize = 12
+    StatusLabel.ZIndex = 3
+    
+    LoginBtn.MouseButton1Click:Connect(function()
+        if PasswordBox.Text == AdminSystem.Password then
+            LoginGui:Destroy()
+            ShowAdminPanel()
         else
-            box.Visible = false
-            if not plr.Parent then box:Destroy(); connection:Disconnect() end
+            StatusLabel.Text = "✗ Yanlış şifre!"
+            PasswordBox.Text = ""
+        end
+    end)
+    
+    PasswordBox.FocusLost:Connect(function(enter)
+        if enter then
+            LoginBtn.MouseButton1Click:Fire()
         end
     end)
 end
-for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
-Players.PlayerAdded:Connect(CreateESP)
 
--- --- [ UI DESIGN ] ---
-if CoreGui:FindFirstChild("HadesV2") then CoreGui.HadesV2:Destroy() end
-local Master = Instance.new("ScreenGui", CoreGui); Master.Name = "HadesV2"
+-- Ana menüyü yükle
+local function LoadMainMenu()
+    _G.HadesSettings = {
+        Aimbot = false,
+        Aimbot_FOV = 200,
+        AimSpeed = 1,
+        LockPriority = "Head",
+        ESP_Box = false,
+        Tracers = false,
+        Speed = false,
+        WalkSpeed = 16,
+        AntiHit = false,
+        AntiHitDistance = 4,
+        AntiHitDelay = 0.5,
+        Fly = false,
+        FlySpeed = 50,
+        Target = nil,
+        FPSBoost = false,
+        Invisible = false,
+        GodMode = false,
+        SnowEffect = true,
+        SpinBot = false,
+        SpinSpeed = 10
+    }
+    
+    local lastAntiHit = 0
+    local antiDir = 1
+    
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
 
-local Main = Instance.new("Frame", Master)
-Main.Size = UDim2.new(0, 620, 0, 420); Main.Position = UDim2.new(0.5, -310, 0.5, -210); Main.BackgroundColor3 = Color3.fromRGB(12,12,12); Main.Draggable = true; Main.Active = true
-Instance.new("UICorner", Main)
-local Stroke = Instance.new("UIStroke", Main); Stroke.Thickness = 2
-task.spawn(function() while task.wait() do Stroke.Color = Color3.fromHSV(tick() % 5 / 5, 0.8, 1) end end)
+    -- FOV CIRCLE
+    local FOVCircle = Instance.new("Frame")
+    FOVCircle.Name = "FOVCircle"
+    FOVCircle.Parent = CoreGui
+    FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+    FOVCircle.BackgroundTransparency = 1
+    FOVCircle.Size = UDim2.new(0, _G.HadesSettings.Aimbot_FOV * 2, 0, _G.HadesSettings.Aimbot_FOV * 2)
+    FOVCircle.Visible = false
+    FOVCircle.ZIndex = 10
+    
+    local FOVStroke = Instance.new("UIStroke")
+    FOVStroke.Parent = FOVCircle
+    FOVStroke.Thickness = 2
+    FOVStroke.Color = Color3.fromRGB(255, 0, 0)
+    
+    local FOVCorner = Instance.new("UICorner")
+    FOVCorner.CornerRadius = UDim.new(1, 0)
+    FOVCorner.Parent = FOVCircle
 
-local Side = Instance.new("Frame", Main); Side.Size = UDim2.new(0, 160, 1, 0); Side.BackgroundColor3 = Color3.fromRGB(8,8,8); Instance.new("UICorner", Side)
+    -- Aimbot fonksiyonları
+    local function getClosestEnemy()
+        local closestTarget = nil
+        local shortestDistance = _G.HadesSettings.Aimbot_FOV
+        local mousePos = UserInputService:GetMouseLocation()
+        
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                -- SADECE RAKİP KONTROLÜ
+                if p.Team ~= LocalPlayer.Team then
+                    local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 then
+                        local pos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+                        if onScreen then
+                            local screenDist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                            if screenDist < shortestDistance then
+                                shortestDistance = screenDist
+                                closestTarget = p.Character.Head
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return closestTarget
+    end
 
-local Logo = Instance.new("ImageLabel", Side)
-Logo.Size = UDim2.new(0, 100, 0, 100); Logo.Position = UDim2.new(0.5, -50, 0, 10); Logo.BackgroundTransparency = 1; Logo.Image = "rbxassetid://13508139595"
+    -- Aimbot döngüsü (SAĞ TIK BASILI TUTUNCA ÇALIŞIR)
+    RunService.RenderStepped:Connect(function()
+        FOVCircle.Position = UDim2.fromOffset(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        FOVCircle.Visible = _G.HadesSettings.Aimbot
+        
+        if _G.HadesSettings.Aimbot and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) and not _G.HadesSettings.SpinBot then
+            local target = getClosestEnemy()
+            if target then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            end
+        end
+    end)
 
-local Title = Instance.new("TextLabel", Side)
-Title.Text = "HADES SOFTWARE"; Title.Position = UDim2.new(0,0,0,110); Title.Size = UDim2.new(1,0,0,30); Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1; Title.TextSize = 13
+    -- 360 SPIN BOT DÖNGÜSÜ
+    RunService.RenderStepped:Connect(function()
+        if _G.HadesSettings.SpinBot then
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(_G.HadesSettings.SpinSpeed * 5), 0)
+            end
+        end
+    end)
 
-local Signature = Instance.new("TextLabel", Main)
-Signature.Text = "by: Valeriuss111ss,Calyizm?"; Signature.Position = UDim2.new(1,-160,1,-25); Signature.Size = UDim2.new(0,150,0,20); Signature.TextColor3 = Color3.new(0.7,0.7,0.7); Signature.BackgroundTransparency = 1; Signature.Font = "GothamMedium"; Signature.TextXAlignment = "Right"
+    -- GOD MODE DÖNGÜSÜ
+    RunService.Heartbeat:Connect(function()
+        if _G.HadesSettings.GodMode then
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.MaxHealth = math.huge
+                    humanoid.Health = math.huge
+                    humanoid.UseJumpPower = true
+                    humanoid.JumpPower = 50
+                    
+                    if humanoid.Health < 1e9 then
+                        humanoid.Health = 1e9
+                    end
+                end
+            end
+        end
+    end)
 
-local Pages = Instance.new("Frame", Main); Pages.Size = UDim2.new(1,-180,1,-40); Pages.Position = UDim2.new(0,170,0,20); Pages.BackgroundTransparency = 1
-local TabContainer = Instance.new("Frame", Side); TabContainer.Size = UDim2.new(1,0,1,-160); TabContainer.Position = UDim2.new(0,0,0,145); TabContainer.BackgroundTransparency = 1
-Instance.new("UIListLayout", TabContainer).HorizontalAlignment = "Center"; TabContainer.UIListLayout.Padding = UDim.new(0,5)
+    -- Speed Slider
+    local SpeedSliderGui = Instance.new("ScreenGui")
+    SpeedSliderGui.Name = "SpeedSlider"
+    SpeedSliderGui.Parent = CoreGui
+    SpeedSliderGui.ResetOnSpawn = false
+    SpeedSliderGui.Enabled = false
+    
+    local SpeedFrame = Instance.new("Frame")
+    SpeedFrame.Parent = SpeedSliderGui
+    SpeedFrame.Size = UDim2.new(0, 200, 0, 60)
+    SpeedFrame.Position = UDim2.new(0, 20, 0.5, -30)
+    SpeedFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    SpeedFrame.BackgroundTransparency = 0.1
+    SpeedFrame.BorderSizePixel = 0
+    SpeedFrame.Draggable = true
+    
+    local SpeedCorner = Instance.new("UICorner")
+    SpeedCorner.CornerRadius = UDim.new(0, 8)
+    SpeedCorner.Parent = SpeedFrame
+    
+    local SpeedTitle = Instance.new("TextLabel")
+    SpeedTitle.Parent = SpeedFrame
+    SpeedTitle.Size = UDim2.new(1, 0, 0, 20)
+    SpeedTitle.Text = "SPEED SLIDER"
+    SpeedTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SpeedTitle.BackgroundTransparency = 1
+    SpeedTitle.Font = Enum.Font.GothamBold
+    SpeedTitle.TextSize = 14
+    
+    local SpeedValue = Instance.new("TextLabel")
+    SpeedValue.Parent = SpeedFrame
+    SpeedValue.Size = UDim2.new(1, 0, 0, 20)
+    SpeedValue.Position = UDim2.new(0, 0, 0, 20)
+    SpeedValue.Text = "Speed: 16"
+    SpeedValue.TextColor3 = Color3.fromRGB(0, 170, 255)
+    SpeedValue.BackgroundTransparency = 1
+    SpeedValue.Font = Enum.Font.Gotham
+    SpeedValue.TextSize = 12
+    
+    local SpeedSliderBg = Instance.new("Frame")
+    SpeedSliderBg.Parent = SpeedFrame
+    SpeedSliderBg.Size = UDim2.new(0.9, 0, 0, 6)
+    SpeedSliderBg.Position = UDim2.new(0.05, 0, 0, 45)
+    SpeedSliderBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    SpeedSliderBg.BorderSizePixel = 0
+    
+    local SpeedSliderBgCorner = Instance.new("UICorner")
+    SpeedSliderBgCorner.CornerRadius = UDim.new(0, 3)
+    SpeedSliderBgCorner.Parent = SpeedSliderBg
+    
+    local SpeedBar = Instance.new("Frame")
+    SpeedBar.Parent = SpeedSliderBg
+    SpeedBar.Size = UDim2.new(0.25, 0, 1, 0)
+    SpeedBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    SpeedBar.BorderSizePixel = 0
+    
+    local SpeedBarCorner = Instance.new("UICorner")
+    SpeedBarCorner.CornerRadius = UDim.new(0, 3)
+    SpeedBarCorner.Parent = SpeedBar
+    
+    local SpeedButton = Instance.new("TextButton")
+    SpeedButton.Parent = SpeedSliderBg
+    SpeedButton.Size = UDim2.new(1, 0, 1, 0)
+    SpeedButton.BackgroundTransparency = 1
+    SpeedButton.Text = ""
+    
+    local draggingSpeed = false
+    
+    SpeedButton.MouseButton1Down:Connect(function()
+        draggingSpeed = true
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingSpeed = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if draggingSpeed and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = UserInputService:GetMouseLocation()
+            local absPos = SpeedSliderBg.AbsolutePosition
+            local size = SpeedSliderBg.AbsoluteSize.X
+            
+            local p = math.clamp((pos.X - absPos.X) / size, 0, 1)
+            SpeedBar.Size = UDim2.new(p, 0, 1, 0)
+            
+            local speed = math.floor(8 + p * 56)
+            _G.HadesSettings.WalkSpeed = speed
+            SpeedValue.Text = "Speed: " .. speed
+        end
+    end)
 
-local function CreatePage(n)
-    local p = Instance.new("ScrollingFrame", Pages); p.Name = n; p.Size = UDim2.new(1,0,1,0); p.Visible = false; p.BackgroundTransparency = 1; p.ScrollBarThickness = 0
-    Instance.new("UIListLayout", p).Padding = UDim.new(0,10); return p
-end
+    -- Tracers
+    local TracerFolder = Instance.new("Folder")
+    TracerFolder.Name = "Tracers"
+    TracerFolder.Parent = CoreGui
+    
+    local TracerCache = {}
+    
+    local function CreateTracer(player)
+        if player == LocalPlayer then return end
+        
+        local tracer = Instance.new("Frame")
+        tracer.Name = player.Name .. "_Tracer"
+        tracer.Parent = TracerFolder
+        tracer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        tracer.BorderSizePixel = 0
+        tracer.AnchorPoint = Vector2.new(0, 0.5)
+        tracer.Visible = false
+        tracer.ZIndex = 5
+        
+        TracerCache[player] = tracer
+    end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        CreateTracer(player)
+    end
+    
+    Players.PlayerAdded:Connect(CreateTracer)
+    
+    RunService.RenderStepped:Connect(function()
+        local bottomCenter = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+        
+        for player, tracer in pairs(TracerCache) do
+            if _G.HadesSettings.Tracers and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = player.Character.HumanoidRootPart
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                
+                if onScreen then
+                    local dir = Vector2.new(pos.X, pos.Y) - bottomCenter
+                    tracer.Position = UDim2.fromOffset(bottomCenter.X, bottomCenter.Y)
+                    tracer.Size = UDim2.new(0, dir.Magnitude, 0, 2)
+                    tracer.Rotation = math.deg(math.atan2(dir.Y, dir.X))
+                    tracer.Visible = true
+                    
+                    if player.Team == LocalPlayer.Team then
+                        tracer.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                    else
+                        tracer.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                    end
+                else
+                    tracer.Visible = false
+                end
+            else
+                tracer.Visible = false
+            end
+            
+            if not player.Parent then
+                tracer:Destroy()
+                TracerCache[player] = nil
+            end
+        end
+    end)
 
-local CombatP = CreatePage("Combat"); local VisualP = CreatePage("Visuals"); local PlayerP = CreatePage("Players"); local ConfigP = CreatePage("Config")
-CombatP.Visible = true
-
--- --- [ PLAYER LIST LOGIC ] ---
-local function UpdatePlayerList()
-    PlayerP:ClearAllChildren()
-    local Layout = Instance.new("UIListLayout", PlayerP); Layout.Padding = UDim.new(0,5); Layout.HorizontalAlignment = "Center"
-    local ActionContainer = Instance.new("Frame", PlayerP); ActionContainer.Size = UDim2.new(1,-20,0,85); ActionContainer.BackgroundTransparency = 1
-    Instance.new("UIListLayout", ActionContainer).Padding = UDim.new(0,5)
-
-    local tpBtn = Instance.new("TextButton", ActionContainer)
-    tpBtn.Size = UDim2.new(1,0,0,40); tpBtn.Text = "Teleport to Selected"; tpBtn.BackgroundColor3 = Color3.fromRGB(40,40,40); tpBtn.TextColor3 = Color3.new(1,1,1); tpBtn.Font = "GothamBold"; Instance.new("UICorner", tpBtn)
-    tpBtn.MouseButton1Click:Connect(function() if _G.HadesSettings.Target and _G.HadesSettings.Target.Character then LocalPlayer.Character:SetPrimaryPartCFrame(_G.HadesSettings.Target.Character.HumanoidRootPart.CFrame) end end)
-
-    local bringBtn = Instance.new("TextButton", ActionContainer)
-    bringBtn.Size = UDim2.new(1,0,0,40); bringBtn.Text = "Bring Selected"; bringBtn.BackgroundColor3 = Color3.fromRGB(40,40,40); bringBtn.TextColor3 = Color3.new(1,1,1); bringBtn.Font = "GothamBold"; Instance.new("UICorner", bringBtn)
-    bringBtn.MouseButton1Click:Connect(function() if _G.HadesSettings.Target and _G.HadesSettings.Target.Character then _G.HadesSettings.Target.Character:SetPrimaryPartCFrame(LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)) end end)
-
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            local pBtn = Instance.new("TextButton", PlayerP); pBtn.Size = UDim2.new(1,-20,0,30); pBtn.Text = p.DisplayName; pBtn.BackgroundColor3 = Color3.fromRGB(25,25,25); pBtn.TextColor3 = Color3.new(1,1,1); pBtn.Font = "Gotham"; Instance.new("UICorner", pBtn)
-            pBtn.MouseButton1Click:Connect(function() _G.HadesSettings.Target = p; for _, btn in pairs(PlayerP:GetChildren()) do if btn:IsA("TextButton") then btn.BackgroundColor3 = Color3.fromRGB(25,25,25) end end pBtn.BackgroundColor3 = Color3.fromRGB(150,0,0) end)
+    -- FPS Boost
+    local function OptimizeFPS(state)
+        if state then
+            settings().Rendering.QualityLevel = 1
+            RunService:Set3dRenderingEnabled(true)
+            for _, v in pairs(game:GetDescendants()) do
+                if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") or v:IsA("CornerWedgePart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.Reflectance = 0
+                    v.CastShadow = false
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v.Transparency = 1
+                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+                    v.Enabled = false
+                elseif v:IsA("Explosion") then
+                    v.Visible = false
+                end
+            end
+            Lighting.GlobalShadows = false
+            Lighting.FogEnd = 9e9
+            Lighting.Brightness = 2
         end
     end
-end
-UpdatePlayerList()
-Players.PlayerAdded:Connect(UpdatePlayerList); Players.PlayerRemoving:Connect(UpdatePlayerList)
 
--- --- [ UI COMPONENTS ] ---
-local function AddTab(n, pg)
-    local t = Instance.new("TextButton", TabContainer); t.Size = UDim2.new(0,140,0,35); t.Text = n; t.BackgroundColor3 = Color3.fromRGB(20,20,20); t.TextColor3 = Color3.new(1,1,1); t.Font = "Gotham"; Instance.new("UICorner", t)
-    t.MouseButton1Click:Connect(function() for _,p in pairs(Pages:GetChildren()) do p.Visible = false end pg.Visible = true end)
+    -- Invisible
+    local function ToggleInvisible(state)
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("LowerTorso") then
+            if state then
+                for _, v in pairs(char:GetChildren()) do
+                    if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
+                        v.Transparency = 1
+                    end
+                end
+            else
+                for _, v in pairs(char:GetChildren()) do
+                    if v:IsA("BasePart") then v.Transparency = 0 end
+                end
+            end
+        end
+    end
+
+    -- Fly
+    local function ToggleFly()
+        task.spawn(function()
+            local char = LocalPlayer.Character
+            if not char then return end
+            
+            local bg = Instance.new("BodyGyro", char.HumanoidRootPart)
+            local bv = Instance.new("BodyVelocity", char.HumanoidRootPart)
+            bg.P = 9e4; bg.maxTorque = Vector3.new(9e9, 9e9, 9e9); bg.cframe = char.HumanoidRootPart.CFrame
+            bv.velocity = Vector3.new(0,0,0); bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            
+            while _G.HadesSettings.Fly and char do
+                RunService.RenderStepped:Wait()
+                char.Humanoid.PlatformStand = true
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+                local direction = Vector3.new(0,0,0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction = direction + Vector3.new(0, 1, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then direction = direction - Vector3.new(0, 1, 0) end
+                bv.velocity = direction * _G.HadesSettings.FlySpeed
+                bg.cframe = Camera.CFrame
+            end
+            
+            bg:Destroy(); bv:Destroy()
+            if char and char.Humanoid then
+                char.Humanoid.PlatformStand = false
+                for _, v in pairs(char:GetDescendants()) do 
+                    if v:IsA("BasePart") then v.CanCollide = true end 
+                end
+            end
+        end)
+    end
+
+    -- ESP
+    local function CreateESP(plr)
+        local box = Drawing.new("Square")
+        box.Visible = false; box.Color = Color3.new(1,0,0); box.Thickness = 1; box.Filled = false
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            if _G.HadesSettings.ESP_Box and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local pos, onScreen = Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    local size = (Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position + Vector3.new(0,3,0)).Y - Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position - Vector3.new(0,4,0)).Y)
+                    box.Size = Vector2.new(size / 1.5, size)
+                    box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
+                    box.Visible = true
+                    box.Color = (plr.Team ~= LocalPlayer.Team) and Color3.new(1,0,0) or Color3.new(0,1,0)
+                else box.Visible = false end
+            else
+                box.Visible = false
+                if not plr.Parent then box:Destroy(); connection:Disconnect() end
+            end
+        end)
+    end
+    
+    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
+    Players.PlayerAdded:Connect(CreateESP)
+
+    -- Ana döngü
+    RunService.RenderStepped:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        
+        if hum and _G.HadesSettings.Speed then
+            hum.WalkSpeed = _G.HadesSettings.WalkSpeed
+        elseif hum then
+            hum.WalkSpeed = 16
+        end
+        
+        if _G.HadesSettings.AntiHit and char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp and tick() - lastAntiHit >= _G.HadesSettings.AntiHitDelay then
+                lastAntiHit = tick()
+                
+                local rightVector = Camera.CFrame.RightVector
+                local offset = rightVector * _G.HadesSettings.AntiHitDistance * antiDir
+                hrp.CFrame = hrp.CFrame + offset
+                antiDir = -antiDir
+            end
+        end
+    end)
+
+    -- UI DESIGN
+    if CoreGui:FindFirstChild("HadesV2") then CoreGui.HadesV2:Destroy() end
+    local Master = Instance.new("ScreenGui", CoreGui); Master.Name = "HadesV2"
+    Master.ResetOnSpawn = false
+
+    -- Arka plan bulanıklığı
+    local BlurBg = CreateBlurBackground(Master)
+    BlurBg.ZIndex = 0
+
+    local Main = Instance.new("Frame", Master)
+    Main.Size = UDim2.new(0, 620, 0, 520)
+    Main.Position = UDim2.new(0.5, -310, 0.5, -260)
+    Main.BackgroundColor3 = Color3.fromRGB(12,12,12)
+    Main.BackgroundTransparency = 0.05
+    Main.Draggable = true
+    Main.Active = true
+    Main.ClipsDescendants = true
+    Main.ZIndex = 2
+    
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 15)
+    
+    local Stroke = Instance.new("UIStroke", Main)
+    Stroke.Thickness = 2
+    task.spawn(function() while task.wait() do Stroke.Color = Color3.fromHSV(tick() % 5 / 5, 0.8, 1) end end)
+
+    -- Kar Efektini Başlat (Sadece menüde)
+    CreateSnowEffect(Main)
+
+    local Side = Instance.new("Frame", Main)
+    Side.Size = UDim2.new(0, 160, 1, 0)
+    Side.BackgroundColor3 = Color3.fromRGB(8,8,8)
+    Side.BackgroundTransparency = 0.1
+    Side.ZIndex = 3
+    Instance.new("UICorner", Side).CornerRadius = UDim.new(0, 15)
+
+    local Logo = Instance.new("ImageLabel", Side)
+    Logo.Size = UDim2.new(0, 100, 0, 100)
+    Logo.Position = UDim2.new(0.5, -50, 0, 10)
+    Logo.BackgroundTransparency = 1
+    Logo.Image = "rbxassetid://6031085938"
+    Logo.ZIndex = 4
+
+    local Title = Instance.new("TextLabel", Side)
+    Title.Text = "HADES SOFTWARE"
+    Title.Position = UDim2.new(0,0,0,115)
+    Title.Size = UDim2.new(1,0,0,30)
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.Font = "GothamBold"
+    Title.BackgroundTransparency = 1
+    Title.TextSize = 13
+    Title.ZIndex = 4
+
+    local Signature = Instance.new("TextLabel", Main)
+    Signature.Text = "by: Ares,Valeriuss111ss,Calyizm?"
+    Signature.Position = UDim2.new(1,-160,1,-25)
+    Signature.Size = UDim2.new(0,150,0,20)
+    Signature.TextColor3 = Color3.new(0.7,0.7,0.7)
+    Signature.BackgroundTransparency = 1
+    Signature.Font = "GothamMedium"
+    Signature.TextXAlignment = "Right"
+    Signature.ZIndex = 4
+
+    local Pages = Instance.new("Frame", Main)
+    Pages.Size = UDim2.new(1,-180,1,-40)
+    Pages.Position = UDim2.new(0,170,0,20)
+    Pages.BackgroundTransparency = 1
+    Pages.ZIndex = 3
+
+    local TabContainer = Instance.new("Frame", Side)
+    TabContainer.Size = UDim2.new(1,0,1,-180)
+    TabContainer.Position = UDim2.new(0,0,0,145)
+    TabContainer.BackgroundTransparency = 1
+    TabContainer.ZIndex = 4
+    
+    local TabLayout = Instance.new("UIListLayout", TabContainer)
+    TabLayout.HorizontalAlignment = "Center"
+    TabLayout.Padding = UDim.new(0,5)
+
+    local function CreatePage(n)
+        local p = Instance.new("ScrollingFrame", Pages)
+        p.Name = n
+        p.Size = UDim2.new(1,0,1,0)
+        p.Visible = false
+        p.BackgroundTransparency = 1
+        p.ScrollBarThickness = 4
+        p.ScrollBarImageColor3 = Color3.fromRGB(150,0,0)
+        p.ZIndex = 4
+        
+        local layout = Instance.new("UIListLayout", p)
+        layout.Padding = UDim.new(0,10)
+        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        return p
+    end
+
+    local CombatP = CreatePage("Combat")
+    local VisualP = CreatePage("Visuals")
+    local PlayerP = CreatePage("Players")
+    local ConfigP = CreatePage("Config")
+    CombatP.Visible = true
+
+    -- SPIN BOT (COMBAT SEKMESİNDE)
+    local SpinFrame = Instance.new("Frame", CombatP)
+    SpinFrame.Size = UDim2.new(0.95, 0, 0, 100)
+    SpinFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    SpinFrame.ZIndex = 5
+    Instance.new("UICorner", SpinFrame).CornerRadius = UDim.new(0, 8)
+
+    local SpinTitle = Instance.new("TextLabel", SpinFrame)
+    SpinTitle.Size = UDim2.new(1, 0, 0, 25)
+    SpinTitle.Position = UDim2.new(0, 0, 0, 5)
+    SpinTitle.Text = "🌀 360 SPIN BOT"
+    SpinTitle.TextColor3 = Color3.fromRGB(255, 100, 0)
+    SpinTitle.BackgroundTransparency = 1
+    SpinTitle.Font = Enum.Font.GothamBold
+    SpinTitle.TextSize = 16
+    SpinTitle.ZIndex = 6
+
+    local SpinBtn = Instance.new("TextButton", SpinFrame)
+    SpinBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    SpinBtn.Position = UDim2.new(0.05, 0, 0, 30)
+    SpinBtn.Text = "🌀 SPIN BOT [OFF]"
+    SpinBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    SpinBtn.TextColor3 = Color3.new(1,1,1)
+    SpinBtn.Font = Enum.Font.GothamBold
+    SpinBtn.TextSize = 14
+    SpinBtn.ZIndex = 6
+    Instance.new("UICorner", SpinBtn).CornerRadius = UDim.new(0, 6)
+
+    local SpeedLabel = Instance.new("TextLabel", SpinFrame)
+    SpeedLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    SpeedLabel.Position = UDim2.new(0.05, 0, 0, 70)
+    SpeedLabel.Text = "Spin Hızı: 10"
+    SpeedLabel.TextColor3 = Color3.new(1,1,1)
+    SpeedLabel.BackgroundTransparency = 1
+    SpeedLabel.Font = Enum.Font.Gotham
+    SpeedLabel.TextSize = 12
+    SpeedLabel.ZIndex = 6
+
+    local SpinSliderBg = Instance.new("Frame", SpinFrame)
+    SpinSliderBg.Size = UDim2.new(0.9, 0, 0, 6)
+    SpinSliderBg.Position = UDim2.new(0.05, 0, 0, 90)
+    SpinSliderBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    SpinSliderBg.ZIndex = 6
+    Instance.new("UICorner", SpinSliderBg).CornerRadius = UDim.new(0, 3)
+
+    local SpinSliderFill = Instance.new("Frame", SpinSliderBg)
+    SpinSliderFill.Size = UDim2.new(0.2, 0, 1, 0)
+    SpinSliderFill.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+    SpinSliderFill.ZIndex = 7
+    Instance.new("UICorner", SpinSliderFill).CornerRadius = UDim.new(0, 3)
+
+    local SpinSliderBtn = Instance.new("TextButton", SpinSliderBg)
+    SpinSliderBtn.Size = UDim2.new(1, 0, 1, 0)
+    SpinSliderBtn.BackgroundTransparency = 1
+    SpinSliderBtn.Text = ""
+    SpinSliderBtn.ZIndex = 8
+
+    local draggingSpin = false
+
+    SpinSliderBtn.MouseButton1Down:Connect(function()
+        draggingSpin = true
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingSpin = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if draggingSpin and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = UserInputService:GetMouseLocation()
+            local absPos = SpinSliderBg.AbsolutePosition
+            local size = SpinSliderBg.AbsoluteSize.X
+            
+            local p = math.clamp((pos.X - absPos.X) / size, 0, 1)
+            SpinSliderFill.Size = UDim2.new(p, 0, 1, 0)
+            
+            _G.HadesSettings.SpinSpeed = math.floor(5 + p * 25)
+            SpeedLabel.Text = "Spin Hızı: " .. _G.HadesSettings.SpinSpeed
+        end
+    end)
+
+    SpinBtn.MouseButton1Click:Connect(function()
+        _G.HadesSettings.SpinBot = not _G.HadesSettings.SpinBot
+        SpinBtn.Text = _G.HadesSettings.SpinBot and "🌀 SPIN BOT [ON]" or "🌀 SPIN BOT [OFF]"
+        SpinBtn.BackgroundColor3 = _G.HadesSettings.SpinBot and Color3.fromRGB(150,0,0) or Color3.fromRGB(40,40,40)
+    end)
+
+    -- Admin butonu
+    local AdminBtn = Instance.new("TextButton", Side)
+    AdminBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    AdminBtn.Position = UDim2.new(0.05, 0, 1, -40)
+    AdminBtn.Text = "👑 KEY ÜRET"
+    AdminBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    AdminBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+    AdminBtn.Font = Enum.Font.GothamBold
+    AdminBtn.TextSize = 12
+    AdminBtn.ZIndex = 5
+    
+    local AdminCorner = Instance.new("UICorner")
+    AdminCorner.CornerRadius = UDim.new(0, 6)
+    AdminCorner.Parent = AdminBtn
+    
+    AdminBtn.MouseButton1Click:Connect(function()
+        if not AdminSystem.Enabled then
+            AdminSystem.Enabled = true
+            ShowAdminLogin()
+        end
+    end)
+
+    -- Player List
+    local function UpdatePlayerList()
+        PlayerP:ClearAllChildren()
+        local Layout = Instance.new("UIListLayout", PlayerP); Layout.Padding = UDim.new(0,5); Layout.HorizontalAlignment = "Center"
+        local ActionContainer = Instance.new("Frame", PlayerP); ActionContainer.Size = UDim2.new(1,-20,0,85); ActionContainer.BackgroundTransparency = 1
+        Instance.new("UIListLayout", ActionContainer).Padding = UDim.new(0,5)
+
+        local tpBtn = Instance.new("TextButton", ActionContainer)
+        tpBtn.Size = UDim2.new(1,0,0,40); tpBtn.Text = "Teleport to Selected"; tpBtn.BackgroundColor3 = Color3.fromRGB(40,40,40); tpBtn.TextColor3 = Color3.new(1,1,1); tpBtn.Font = "GothamBold"; Instance.new("UICorner", tpBtn)
+        tpBtn.MouseButton1Click:Connect(function() if _G.HadesSettings.Target and _G.HadesSettings.Target.Character then LocalPlayer.Character:SetPrimaryPartCFrame(_G.HadesSettings.Target.Character.HumanoidRootPart.CFrame) end end)
+
+        local bringBtn = Instance.new("TextButton", ActionContainer)
+        bringBtn.Size = UDim2.new(1,0,0,40); bringBtn.Text = "Bring Selected"; bringBtn.BackgroundColor3 = Color3.fromRGB(40,40,40); bringBtn.TextColor3 = Color3.new(1,1,1); bringBtn.Font = "GothamBold"; Instance.new("UICorner", bringBtn)
+        bringBtn.MouseButton1Click:Connect(function() if _G.HadesSettings.Target and _G.HadesSettings.Target.Character then _G.HadesSettings.Target.Character:SetPrimaryPartCFrame(LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)) end end)
+
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                local pBtn = Instance.new("TextButton", PlayerP); pBtn.Size = UDim2.new(1,-20,0,30); pBtn.Text = p.DisplayName; pBtn.BackgroundColor3 = Color3.fromRGB(25,25,25); pBtn.TextColor3 = Color3.new(1,1,1); pBtn.Font = "Gotham"; Instance.new("UICorner", pBtn)
+                pBtn.MouseButton1Click:Connect(function() _G.HadesSettings.Target = p; for _, btn in pairs(PlayerP:GetChildren()) do if btn:IsA("TextButton") then btn.BackgroundColor3 = Color3.fromRGB(25,25,25) end end pBtn.BackgroundColor3 = Color3.fromRGB(150,0,0) end)
+            end
+        end
+    end
+    UpdatePlayerList()
+    Players.PlayerAdded:Connect(UpdatePlayerList); Players.PlayerRemoving:Connect(UpdatePlayerList)
+
+    -- UI Buttons
+    local function AddTab(n, pg)
+        local t = Instance.new("TextButton", TabContainer)
+        t.Size = UDim2.new(0,140,0,35)
+        t.Text = n
+        t.BackgroundColor3 = Color3.fromRGB(20,20,20)
+        t.TextColor3 = Color3.new(1,1,1)
+        t.Font = "Gotham"
+        t.ZIndex = 5
+        Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)
+        
+        t.MouseButton1Click:Connect(function()
+            for _,p in pairs(Pages:GetChildren()) do p.Visible = false end
+            pg.Visible = true
+        end)
+    end
+
+    local function AddToggle(pg, txt, key, callback)
+        local b = Instance.new("TextButton", pg)
+        b.Size = UDim2.new(0.95, 0, 0, 40)
+        b.Text = txt.." [OFF]"
+        b.BackgroundColor3 = Color3.fromRGB(25,25,25)
+        b.TextColor3 = Color3.new(1,1,1)
+        b.Font = "Gotham"
+        b.ZIndex = 5
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+        
+        b.MouseButton1Click:Connect(function()
+            _G.HadesSettings[key] = not _G.HadesSettings[key]
+            b.Text = txt..(_G.HadesSettings[key] and " [ON]" or " [OFF]")
+            b.BackgroundColor3 = _G.HadesSettings[key] and Color3.fromRGB(150,0,0) or Color3.fromRGB(25,25,25)
+            if callback then callback(_G.HadesSettings[key]) end
+        end)
+    end
+
+    AddTab("⚔️ COMBAT", CombatP)
+    AddTab("👁️ VISUALS", VisualP)
+    AddTab("🎯 PLAYERS", PlayerP)
+    AddTab("⚙️ CONFIG", ConfigP)
+
+    -- Combat
+    AddToggle(CombatP, "🎯 AIMBOT (Sağ Tık)", "Aimbot")
+    AddToggle(CombatP, "🌀 SPIN BOT", "SpinBot")
+    AddToggle(CombatP, "🛡️ ANTI HIT", "AntiHit")
+    
+    -- Visuals
+    AddToggle(VisualP, "📦 BOX ESP", "ESP_Box")
+    AddToggle(VisualP, "📏 TRACERS", "Tracers")
+    AddToggle(VisualP, "⚡ SPEED SLIDER", "Speed", function(v)
+        SpeedSliderGui.Enabled = v
+    end)
+    AddToggle(VisualP, "❄️ KAR YAĞIŞI", "SnowEffect")
+    AddToggle(VisualP, "🚀 FPS BOOST", "FPSBoost", function(v) OptimizeFPS(v) end)
+
+    -- Players
+    AddToggle(PlayerP, "👻 INVISIBLE", "Invisible", function(v) ToggleInvisible(v) end)
+    AddToggle(PlayerP, "✨ GOD MODE", "GodMode")
+
+    -- Config
+    AddToggle(ConfigP, "🦅 FLY MODE", "Fly", function(v) if v then ToggleFly() end end)
+
+    UserInputService.InputBegan:Connect(function(i, g) 
+        if not g and (i.KeyCode == Enum.KeyCode.RightShift or i.KeyCode == Enum.KeyCode.Insert) then 
+            Main.Visible = not Main.Visible 
+        end
+    end)
+
+    print("✅ Hades Software v3.5 - KAR YAĞIŞI EKLENDİ!")
 end
 
-local function AddToggle(pg, txt, key, callback)
-    local b = Instance.new("TextButton", pg); b.Size = UDim2.new(1,-20,0,40); b.Text = txt.." [OFF]"; b.BackgroundColor3 = Color3.fromRGB(25,25,25); b.TextColor3 = Color3.new(1,1,1); b.Font = "Gotham"; Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function()
-        _G.HadesSettings[key] = not _G.HadesSettings[key]
-        b.Text = txt..(_G.HadesSettings[key] and " [ON]" or " [OFF]")
-        b.BackgroundColor3 = _G.HadesSettings[key] and Color3.fromRGB(150,0,0) or Color3.fromRGB(25,25,25)
-        if callback then callback(_G.HadesSettings[key]) end
+local function ShowKeyScreen()
+    local KeyGui = Instance.new("ScreenGui")
+    KeyGui.Name = "HadesKeySystem"
+    KeyGui.Parent = CoreGui
+    KeyGui.ResetOnSpawn = false
+    
+    local Background = Instance.new("Frame")
+    Background.Parent = KeyGui
+    Background.Size = UDim2.new(1, 0, 1, 0)
+    Background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Background.BackgroundTransparency = 0.7
+    
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = KeyGui
+    MainFrame.Size = UDim2.new(0, 400, 0, 300)
+    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ZIndex = 2
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = MainFrame
+    
+    local Title = Instance.new("TextLabel")
+    Title.Parent = MainFrame
+    Title.Size = UDim2.new(1, 0, 0, 60)
+    Title.Position = UDim2.new(0, 0, 0, 20)
+    Title.Text = "HADES SOFTWARE"
+    Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+    Title.BackgroundTransparency = 1
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 30
+    Title.ZIndex = 3
+    
+    local SubTitle = Instance.new("TextLabel")
+    SubTitle.Parent = MainFrame
+    SubTitle.Size = UDim2.new(1, 0, 0, 20)
+    SubTitle.Position = UDim2.new(0, 0, 0, 80)
+    SubTitle.Text = "Master Key: HADES2026 (Sınırsız)"
+    SubTitle.TextColor3 = Color3.fromRGB(100, 255, 100)
+    SubTitle.BackgroundTransparency = 1
+    SubTitle.Font = Enum.Font.Gotham
+    SubTitle.TextSize = 14
+    SubTitle.ZIndex = 3
+    
+    local InputBox = Instance.new("TextBox")
+    InputBox.Parent = MainFrame
+    InputBox.Size = UDim2.new(0.8, 0, 0, 45)
+    InputBox.Position = UDim2.new(0.1, 0, 0, 120)
+    InputBox.PlaceholderText = "ANAHTAR GİR"
+    InputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    InputBox.Text = ""
+    InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    InputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    InputBox.Font = Enum.Font.Gotham
+    InputBox.TextSize = 18
+    InputBox.ZIndex = 3
+    
+    local InputCorner = Instance.new("UICorner")
+    InputCorner.CornerRadius = UDim.new(0, 6)
+    InputCorner.Parent = InputBox
+    
+    local VerifyButton = Instance.new("TextButton")
+    VerifyButton.Parent = MainFrame
+    VerifyButton.Size = UDim2.new(0.8, 0, 0, 45)
+    VerifyButton.Position = UDim2.new(0.1, 0, 0, 180)
+    VerifyButton.Text = "GİRİŞ YAP"
+    VerifyButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    VerifyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    VerifyButton.Font = Enum.Font.GothamBold
+    VerifyButton.TextSize = 18
+    VerifyButton.ZIndex = 3
+    
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(0, 6)
+    ButtonCorner.Parent = VerifyButton
+    
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Parent = MainFrame
+    StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+    StatusLabel.Position = UDim2.new(0, 0, 1, -40)
+    StatusLabel.Text = ""
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.TextSize = 14
+    StatusLabel.ZIndex = 3
+    
+    local AttemptLabel = Instance.new("TextLabel")
+    AttemptLabel.Parent = MainFrame
+    AttemptLabel.Size = UDim2.new(1, 0, 0, 20)
+    AttemptLabel.Position = UDim2.new(0, 0, 1, -20)
+    AttemptLabel.Text = "Deneme: 0/" .. KeySystem.MaxAttempts
+    AttemptLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    AttemptLabel.BackgroundTransparency = 1
+    AttemptLabel.Font = Enum.Font.Gotham
+    AttemptLabel.TextSize = 12
+    AttemptLabel.ZIndex = 3
+    
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Parent = MainFrame
+    Stroke.Thickness = 2
+    Stroke.Color = Color3.fromRGB(150, 0, 0)
+    
+    VerifyButton.MouseButton1Click:Connect(function()
+        local input = string.upper(InputBox.Text)
+        local valid, type, time = CheckKey(input)
+        
+        if valid then
+            if type == "admin" then
+                StatusLabel.Text = "✓ ADMIN GİRİŞİ! (Sınırsız)"
+                StatusLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+            else
+                StatusLabel.Text = "✓ GİRİŞ BAŞARILI! (Süre: " .. time .. ")"
+                StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            end
+            
+            VerifyButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            VerifyButton.Text = "BAŞARILI"
+            
+            task.wait(1)
+            KeyGui:Destroy()
+            LoadMainMenu()
+        else
+            KeySystem.Attempts = KeySystem.Attempts + 1
+            AttemptLabel.Text = "Deneme: " .. KeySystem.Attempts .. "/" .. KeySystem.MaxAttempts
+            
+            if KeySystem.Attempts >= KeySystem.MaxAttempts then
+                if type == "expired" then
+                    StatusLabel.Text = "✗ ANAHTAR SÜRESİ DOLMUŞ!"
+                else
+                    StatusLabel.Text = "✗ MAKSİMUM DENEME!"
+                end
+                StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                VerifyButton.Visible = false
+                InputBox.Visible = false
+                
+                task.wait(2)
+                KeyGui:Destroy()
+            else
+                if type == "expired" then
+                    StatusLabel.Text = "✗ ANAHTAR SÜRESİ DOLMUŞ! (Kalan: " .. (KeySystem.MaxAttempts - KeySystem.Attempts) .. ")"
+                else
+                    StatusLabel.Text = "✗ GEÇERSİZ ANAHTAR! (Kalan: " .. (KeySystem.MaxAttempts - KeySystem.Attempts) .. ")"
+                end
+                StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                
+                for i = 1, 3 do
+                    MainFrame.Position = UDim2.new(0.5, -200 + math.random(-5, 5), 0.5, -150 + math.random(-5, 5))
+                    task.wait(0.05)
+                end
+                MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+                
+                InputBox.Text = ""
+            end
+        end
+    end)
+    
+    InputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            VerifyButton.MouseButton1Click:Fire()
+        end
     end)
 end
 
-AddTab("Combat", CombatP); AddTab("Visuals", VisualP); AddTab("Players", PlayerP); AddTab("Config", ConfigP)
-
--- Combat
-AddToggle(CombatP, "Aimbot (Düşman Odaklı)", "Aimbot")
-
--- Visuals
-AddToggle(VisualP, "Box ESP (Dost/Düşman)", "ESP_Box")
-AddToggle(VisualP, "ULTRA FPS BOOST", "FPSBoost", function(v) OptimizeFPS(v) end)
-
--- Players
-AddToggle(PlayerP, "Invisible (Görünmezlik)", "Invisible", function(v) ToggleInvisible(v) end)
-
--- Config
-AddToggle(ConfigP, "Flight Mode (WASD)", "Fly", function(v) if v then ToggleFly() end end)
-
-UserInputService.InputBegan:Connect(function(i, g) if not g and (i.KeyCode == Enum.KeyCode.RightShift or i.KeyCode == Enum.KeyCode.Insert) then Main.Visible = not Main.Visible end end)
-
-print("Hades Software v3.5 - Stealth & Combat Edition Loaded")
+ShowKeyScreen()
+print("🔐 Hades Software - KAR YAĞIŞI VE BULANIK ARKAPLAN EKLENDİ!")
+print("📌 Admin Şifresi: ADMIN123 | Master Key: HADES2026")
+print("❄️ Menü açıkken kar yağıyor, arka plan bulanık!")
